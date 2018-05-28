@@ -1,29 +1,37 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/chats');
+ 
+  // schema 
 
-app.get('/', function(req, res){
-  res.send('good conection');
+var chatSchema = mongoose.Schema({
+     name:{type:String},
+     message:{type:String},
+     created: {type: Date, default: Date.now}
+  });
+
+var Chat = mongoose.model('Chat',chatSchema);
+
+io.sockets.on('connection', (socket) => {
+  
+Chat.find({},(err, oldMessage) =>{
+      io.emit('old-message', oldMessage);
+  });
+
+socket.on('add-message', (data) => {
+    let setChat = new Chat(data);
+    setChat.save((err)=>{
+      if(err) throw err;
+    });
+    io.emit('message', data);
+  });
 });
 
-io.on('connection', function(socket){
-
-    socket.on('set-nickname', (nickname) => {
-        socket.nickname = nickname;
-        io.emit('users-changed', {user: nickname, event: 'login'});    
-      });
-
-    socket.on('add-message', (message) => {
-        io.emit('message', {text: message.text, from: socket.nickname, created: new Date()});    
-      });
-
-      socket.on('disconnect', function(){
-        io.emit('users-changed', {user: socket.nickname, event: 'logout'});   
-      });
-
-    });
-
-
-http.listen(3000, function(){
-  console.log('listening on *:3000');
+ 
+var port = process.env.PORT || 3000;
+ 
+http.listen(port, function(){
+   console.log('listening in http://localhost:' + port);
 });
