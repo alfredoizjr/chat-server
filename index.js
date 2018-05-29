@@ -15,19 +15,21 @@ var chatSchema = mongoose.Schema({
 var Chat = mongoose.model('Chat',chatSchema);
 
 io.sockets.on('connection', (socket) => {
-  
+
 Chat.find({},(err, oldMessage) =>{
       io.emit('old-message', oldMessage);
   });
 
-socket.on('add-message', (data) => {
+  socket.on('add-message', (data) => {
     let setChat = new Chat(data);
     setChat.save((err)=>{
       if(err) throw err;
     });
     io.emit('message', data);
   });
+
 });
+
 
  
 var port = process.env.PORT || 3000;
